@@ -10,6 +10,18 @@ dataNaN = data.dropna()
 X = dataNaN.iloc[:,range(139)]
 y = dataNaN.iloc[:,140]
 
+from sklearn import preprocessing
+scaler = preprocessing.StandardScaler().fit(X)
+X_scaled = scaler.transform(X)
+X_scaled = pandas.DataFrame(X_scaled)
+
+
+##########################################################################
+# Lasso
+##########################################################################
+import sklearn
+lasso = sklearn.linear_model.LassoCV(cv=10,max_iter=10000,normalize=False,random_state=1983).fit(X_scaled,y)
+
 rf = RandomForestClassifier(random_state=1983)
 rf.fit(X, y)
 rf.score(X,y)
