@@ -40,8 +40,6 @@ X_test_scaled = scaler.transform(X_test)
 X_test_scaled = pandas.DataFrame(X_test_scaled)
 
 
-
-
 ##########################################################################
 # Lasso
 ##########################################################################
@@ -50,9 +48,12 @@ aa = numpy.random.random_sample(size=1000)
 b = aa+1
 c = aa+2
 aGrid = numpy.concatenate((a,b,c))
-lassoTrain = sklearn.linear_model.LassoCV(alphas=aGrid,cv=10,max_iter=10000,normalize=False,random_state=1983,n_jobs=-1).fit(X_train_scaled,y_train)
+lassoTrain = sklearn.linear_model.LassoCV(alphas=aGrid,cv=10,max_iter=10000,normalize=False,random_state=1983).fit(X_train_scaled,y_train)
 
+finalFit = sklearn.linear_model.Lasso(alpha=2.0346915358016027e-05,max_iter=50000,random_state=1983).fit(X_train_scaled,y_train)
 
+y_predict = finalFit.predict(X_test_scaled)
+sklearn.metrics.accuracy_score(y,y_predict)
 
 rf = RandomForestClassifier(random_state=1983)
 rf.fit(X, y)
