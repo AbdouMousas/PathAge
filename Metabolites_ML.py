@@ -26,6 +26,7 @@ for i in range(len(missingValues)):
 
 # Train/Test set split
 X = data.iloc[:,range(139)]
+featureNames = X.columns.values
 y = data.iloc[:,140]
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=1983)
@@ -43,17 +44,37 @@ X_test_scaled = pandas.DataFrame(X_test_scaled)
 ##########################################################################
 # Lasso
 ##########################################################################
-a = numpy.random.random_sample(size=10000)
-aa = numpy.random.random_sample(size=1000)
+a = numpy.random.random_sample(size=1000)
+aa = numpy.random.random_sample(size=100)
 b = aa+1
 c = aa+2
 aGrid = numpy.concatenate((a,b,c))
-lassoTrain = sklearn.linear_model.LassoCV(alphas=aGrid,cv=10,max_iter=10000,normalize=False,random_state=1983).fit(X_train_scaled,y_train)
+lassoTrain = sklearn.linear_model.LassoCV(alphas=aGrid,positive=True,cv=10,max_iter=10000,normalize=False,random_state=1983).fit(X_train_scaled,y_train)
 
-finalFit = sklearn.linear_model.Lasso(alpha=2.0346915358016027e-05,max_iter=50000,random_state=1983).fit(X_train_scaled,y_train)
+finalFit = sklearn.linear_model.Lasso(alpha=0.0002093020658164857,positive=True,max_iter=10000,random_state=1983).fit(X_train_scaled,y_train)
 
 y_predict = finalFit.predict(X_test_scaled)
-sklearn.metrics.accuracy_score(y,y_predict)
+sklearn.metrics.accuracy_score(y_test,numpy.round(abs(y_predict)))
+##########################################################################
+
+hmdbData = data.iloc[:,[37,38,140]]
+
+sampleNames = []
+for i in range(hmdbData.shape[0]):
+   sampleNames.append("S" + repr(i+1))
+hmdbData["Samples"] = sampleNames
+
+hmdbData = hmdbData.rename(columns={"Glutamine":"HMDB0000641","Glycine":"HMDB0000123","Health_metrics_all_ideal_81651$ideal_categ":"Group"})
+
+index0 = numpy.where(hmdbData["Group"] == 0)[0]
+hmdbData["Group"].iloc[index0] = "Control"
+
+index1 = numpy.where(hmdbData["Group"] == 1)[0]
+hmdbData["Group"].iloc[index1] = "Case"
+
+hmdbData = hmdbData[["Samples","Group","HMDB0000641","HMDB0000123"]]
+hmdbData.to_csv("/home/amousas/Downloads/hmdbData.csv",sep=",",index=False)
+
 
 rf = RandomForestClassifier(random_state=1983)
 rf.fit(X, y)
