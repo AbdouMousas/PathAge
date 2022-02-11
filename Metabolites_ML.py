@@ -1,26 +1,58 @@
+# Import libraries
 import pandas, numpy, seaborn
+import sklearn
 from sklearn.ensemble import RandomForestClassifier
 import matplotlib.pyplot as plt
-
-filePath = "/home/amousas/Downloads/metabol.xlsx"
-
-data = pandas.read_excel(filePath)
-dataNaN = data.dropna()
-
-X = dataNaN.iloc[:,range(139)]
-y = dataNaN.iloc[:,140]
-
+from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
-scaler = preprocessing.StandardScaler().fit(X)
-X_scaled = scaler.transform(X)
-X_scaled = pandas.DataFrame(X_scaled)
+
+
+# Load data
+filePath = "/home/amousas/Downloads/metabol.xlsx"
+data = pandas.read_excel(filePath)
+
+# Identify samples with missing values
+missingValues = []
+for i in range(data.shape[0]):
+   if len(set(numpy.isnan(data.iloc[i,:]))) > 1:
+       missingValues.append(i)
+
+# Impute missing values
+for i in range(len(missingValues)):
+    index = numpy.where(numpy.isnan(data.iloc[missingValues[i],:]) == 1)[0]
+    for j in range(len(index)):
+        data.iloc[:,index[j]] = data.iloc[:,index[j]].fillna(numpy.mean(data.iloc[:,index[j]])) 
+#dataNaN = data.dropna()
+
+# Train/Test set split
+X = data.iloc[:,range(139)]
+y = data.iloc[:,140]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=1983)
+
+# Normalization of the data matrix
+scaler = preprocessing.StandardScaler().fit(X_train)
+X_train_scaled = scaler.transform(X_train)
+X_train_scaled = pandas.DataFrame(X_train_scaled)
+
+scaler = preprocessing.StandardScaler().fit(X_test)
+X_test_scaled = scaler.transform(X_test)
+X_test_scaled = pandas.DataFrame(X_test_scaled)
+
+
 
 
 ##########################################################################
 # Lasso
 ##########################################################################
-import sklearn
-lasso = sklearn.linear_model.LassoCV(cv=10,max_iter=10000,normalize=False,random_state=1983).fit(X_scaled,y)
+a = numpy.random.random_sample(size=10000)
+aa = numpy.random.random_sample(size=1000)
+b = aa+1
+c = aa+2
+aGrid = numpy.concatenate((a,b,c))
+lassoTrain = sklearn.linear_model.LassoCV(alphas=aGrid,cv=10,max_iter=10000,normalize=False,random_state=1983,n_jobs=-1).fit(X_train_scaled,y_train)
+
+
 
 rf = RandomForestClassifier(random_state=1983)
 rf.fit(X, y)
