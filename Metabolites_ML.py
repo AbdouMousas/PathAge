@@ -49,12 +49,21 @@ aa = numpy.random.random_sample(size=100)
 b = aa+1
 c = aa+2
 aGrid = numpy.concatenate((a,b,c))
-lassoTrain = sklearn.linear_model.LassoCV(alphas=aGrid,positive=True,cv=10,max_iter=10000,normalize=False,random_state=1983).fit(X_train_scaled,y_train)
+lassoTrain = sklearn.linear_model.LassoCV(alphas=aGrid,cv=10,max_iter=10000,normalize=False,random_state=1983).fit(X_train_scaled,y_train)
+lassoTrainPositive = sklearn.linear_model.LassoCV(alphas=aGrid,cv=10,max_iter=10000,positive=True,normalize=False,random_state=1983).fit(X_train_scaled,y_train)
+enTrain = sklearn.linear_model.ElasticNetCV(l1_ratio = [0.1,0.5,0.7,0.9,0.95,0.99,1],alphas=aGrid,cv=10,max_iter=10000,normalize=False,random_state=1983).fit(X_train_scaled,y_train)
 
-finalFit = sklearn.linear_model.Lasso(alpha=0.0002093020658164857,positive=True,max_iter=10000,random_state=1983).fit(X_train_scaled,y_train)
 
-y_predict = finalFit.predict(X_test_scaled)
-sklearn.metrics.accuracy_score(y_test,numpy.round(abs(y_predict)))
+finalFitLasso = sklearn.linear_model.Lasso(alpha=lassoTrain.alpha_,max_iter=10000,random_state=1983).fit(X_train_scaled,y_train)
+finalFitLassoPositive = sklearn.linear_model.Lasso(alpha=lassoTrainPositive.alpha_,positive=True,max_iter=10000,random_state=1983).fit(X_train_scaled,y_train)
+finalFitEnTrain = sklearn.linear_model.ElasticNet(l1_ratio=enTrain.l1_ratio_ ,alpha=enTrain.alpha_,max_iter=10000,normalize=False,random_state=1983).fit(X_train_scaled,y_train)
+
+y_predict_Lasso = finalFitLasso.predict(X_test_scaled)
+y_predict_EnTrain = finalFitEnTrain.predict(X_test_scaled) 
+y_predict_LassoPositive = finalFitLassoPositive.predict(X_test_scaled)
+
+sklearn.metrics.roc_auc_score(y_test,y_predict_Lasso)
+sklearn.metrics.roc_auc_score(y_test,y_predict_EnTrain)
 ##########################################################################
 
 hmdbData = data.iloc[:,[37,38,140]]
@@ -220,3 +229,42 @@ fig3 = px.imshow(corrReArrange)
 fig3.write_html("/home/amousas/Downloads/test3.html")
 
 
+from sklearn.feature_selection import GenericUnivariateSelect
+from sklearn.feature_selection import chi2,f_classif,mutual_info_classif
+
+a = GenericUnivariateSelect(score_func=chi2,mode="fdr").fit(X_train, y_train)
+
+scaler = preprocessing.MinMaxScaler().fit(X_train)
+X_train_scaled2 = scaler.transform(X_train)
+X_train_scaled2 = pandas.DataFrame(X_train_scaled2)
+a_scaled = GenericUnivariateSelect(score_func=chi2,mode="fdr").fit(X_train_scaled2, y_train)
+
+b = GenericUnivariateSelect(score_func=f_classif,mode="fdr").fit(X_train, y_train)
+c = GenericUnivariateSelect(score_func= mutual_info_classif,mode="fdr",param=0.05).fit(X_train, y_train)
+
+
+X_train_transf = GenericUnivariateSelect(score_func=chi2,mode="fdr").fit_transform(X_train, y_train)
+
+
+_,p = sklearn.feature_selection.chi2(X_train, y_train)
+index = numpy.where(p < 0.05/X_train.shape[1])[0]
+X_train_scaled_filter = X_train_scaled.iloc[:,index]
+X_test_scaled_filter = X_test_scaled.iloc[:,index]
+
+lassoTrainFilter = sklearn.linear_model.LassoCV(alphas=aGrid,cv=10,max_iter=10000,normalize=False,random_state=1983).fit(X_train_scaled_filter,y_train)
+finalFitLassoFilter = sklearn.linear_model.Lasso(alpha=lassoTrainFilter.alpha_,max_iter=10000,random_state=1983).fit(X_train_scaled_filter,y_train)
+y_predict_LassoFilter = finalFitLassoFilter.predict(X_test_scaled_filter)
+sklearn.metrics.roc_auc_score(y_test,y_predict_LassoFilter)
+
+
+rf = RandomForestClassifier(n_estimators=1000,criterion='entropy', max_depth=5, min_samples_split=2, min_samples_leaf=1, max_features='auto', random_state=1983)
+rf.fit(X_train, y_train)
+
+y_predict_rf_Train = rf.predict(X_train)
+sklearn.metrics.roc_auc_score(y_train,y_predict_rf_Train)
+
+y_predict_rf_Test = rf.predict(X_test)
+sklearn.metrics.roc_auc_score(y_test,y_predict_rf_Test)
+
+
+rf.feature_importances_
